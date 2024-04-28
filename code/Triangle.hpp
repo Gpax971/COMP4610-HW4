@@ -229,11 +229,48 @@ inline Bounds3 Triangle::getBounds() { return Union(Bounds3(v0, v1), v2); }
 
 inline Intersection Triangle::getIntersection(Ray ray)
 {
+    const float epsilon = std::numeric_limits<float>::epsilon();
     Intersection inter;
-    // TODO: task 1.1 Ray-Triangle Intersection
+    inter.happened = false;
 
+    Vector3f ray_cross_e2 = crossProduct(ray.direction, this->e2);
+    float det = dotProduct(this->e1, ray_cross_e2);
 
+    if (det > -epsilon && det < epsilon) return inter;
+
+    float inv_det = 1.0 / det;
+    Vector3f s = ray.origin - this->v0;
+    float u = inv_det * dotProduct(s, ray_cross_e2);
+
+    if (u < 0 || u > 1) return inter;
+
+    Vector3f s_cross_e1 = crossProduct(s, this->e1);
+    float v = inv_det * dotProduct(ray.direction, s_cross_e1);
+    if (v < 0 || u + v > 1) return inter;
+
+    float t = inv_det * dotProduct(this->e2, s_cross_e1);
+    if (t > epsilon) {
+        inter.coords = ray.origin + ray.direction * t;
+        inter.happened = true;
+        inter.normal = this->normal;
+        inter.material = this->m;
+        inter.obj = this;
+        inter.tcoords = {0, 0};
+    }
     return inter;
+}
+
+static Vector3f computeBarycentric2D(float x, float y, Vector3f p0, Vector3f p1, Vector3f p2) {
+    float c1 = (x * (p1[1] - p2[1]) + (p2[0] - p1[0]) * y + p1[0] * p2[1] - p2[0] * p1[1]) /
+               (p0[0] * (p1[1] - p2[1]) + (p2[0] - p1[0]) * p0[1] + p1[0] * p2[1] -
+                p2[0] * p1[1]);
+    float c2 = (x * (p2[1] - p0[1]) + (p0[0] - p2[0]) * y + p2[0] * p0[1] - p0[0] * p2[1]) /
+               (p1[0] * (p2[1] - p0[1]) + (p0[0] - p2[0]) * p1[1] + p2[0] * p0[1] -
+                p0[0] * p2[1]);
+    float c3 = (x * (p0[1] - p1[1]) + (p1[0] - p0[0]) * y + p0[0] * p1[1] - p1[0] * p0[1]) /
+               (p2[0] * (p0[1] - p1[1]) + (p1[0] - p0[0]) * p2[1] + p0[0] * p1[1] -
+                p1[0] * p0[1]);
+    return {c1, c2, c3};
 }
 
 inline Vector3f Triangle::evalDiffuseColor(const Vector2f& st) const

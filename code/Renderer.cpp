@@ -36,12 +36,15 @@ void Renderer::Render(const Scene& scene)
         for (uint32_t i = 0; i < scene.width; ++i) {
 
             int m = i + j * scene.width;
-            if(scene.spp==1){
+            if (scene.spp==1) {
                 // TODO: task 1.2 pixel projection
+                float x = (float)(i << 1) / scene.width - 1;
+                float y = (float)(j << 1) / scene.height - 1;
+                Vector3f ray_dir {-x, -y, 1};
 
-                Vector3f dir = normalize(Vector3f(i, j, 1));
+                Vector3f dir = normalize(ray_dir);
                 framebuffer[m] = scene.castRay(Ray(eye_pos, dir), 0);
-            }else {
+            } else {
                 // TODO: task 4 multi-sampling
 
 
