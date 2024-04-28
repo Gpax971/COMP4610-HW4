@@ -42,7 +42,7 @@ void Scene::sampleLight(Intersection &pos, float &pdf) const
 // Implementation of Path Tracing
 Vector3f Scene::castRay(const Ray &ray, int depth) const
 {
-    Vector3f hitColor = backgroundColor;
+    Vector3f hitColor = 0;
     Intersection inter = intersect(ray);
     if (!inter.happened) return backgroundColor;
 

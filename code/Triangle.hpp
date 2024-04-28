@@ -275,7 +275,7 @@ static Vector3f computeBarycentric2D(float x, float y, Vector3f p0, Vector3f p1,
 
 inline Vector3f Triangle::evalDiffuseColor(const Vector2f& st) const
 {
-    if(!m->textured)return m->Kd;
+    if(!m->textured)return m->getColor();
     auto uv = t0 * (1 - st.x - st.y) + t1 * st.x + t2 * st.y;
     float scale = 5;
     float pattern = (fmodf(uv.x * scale, 1) > 0.5) ^ (fmodf(uv.y * scale, 1) > 0.5);

@@ -24,12 +24,9 @@ int main(int argc, char** argv)
         scene.spp = 32; // number of samples per pixel
     else
         scene.spp = 1;
-    Material* red = new Material(DIFFUSE, Vector3f(0.0f));
-    red->Kd = Vector3f(0.63f, 0.2f, 0.2f);
-    Material* green = new Material(DIFFUSE, Vector3f(0.0f));
-    green->Kd = Vector3f(0.33, 0.56, 0.29);
-    Material* white = new Material(DIFFUSE, Vector3f(0.0f));
-    white->Kd = Vector3f(0.725f, 0.71f, 0.68f);
+    Material* red = new Material(DIFFUSE, Vector3f(0.3f, 0.01f, 0.01f));
+    Material* green = new Material(DIFFUSE, Vector3f(0.045, 0.22, 0.03));
+    Material* white = new Material(DIFFUSE, Vector3f(0.48f, 0.45f, 0.4f));
     Material* light = new Material(EMIT, Vector3f(1));
     light->m_emission=100;
 

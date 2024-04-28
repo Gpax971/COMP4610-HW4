@@ -92,7 +92,7 @@ public:
     Vector3f m_color;
     Vector3f m_emission;
     float ior;  // index of refraction
-    Vector3f Kd, Ks;  // coefficient of diffuse and specular
+    float Kd, Ks;  // coefficient of diffuse and specular
     float specularExponent;
     bool textured;
 
