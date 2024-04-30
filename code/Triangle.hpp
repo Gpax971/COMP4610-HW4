@@ -129,6 +129,7 @@ public:
         m = mt;
         assert(loader.LoadedMeshes.size() == 1);
         objl::Mesh mesh = loader.LoadedMeshes[0];
+        std::map<std::tuple<float, float, float>, Vector3f> vertex_counts;
 
         Vector3f min_vert = Vector3f{std::numeric_limits<float>::infinity(),
                                      std::numeric_limits<float>::infinity(),
@@ -136,6 +137,30 @@ public:
         Vector3f max_vert = Vector3f{-std::numeric_limits<float>::infinity(),
                                      -std::numeric_limits<float>::infinity(),
                                      -std::numeric_limits<float>::infinity()};
+
+        if (mt->m_type == GLASS && TASK_N == 6) {
+            for (int i = 0; i < mesh.Vertices.size(); i += 3) {
+                float x1 = mesh.Vertices[i].Position.X;
+                float y1 = mesh.Vertices[i].Position.Y;
+                float z1 = mesh.Vertices[i].Position.Z;
+                float x2 = mesh.Vertices[i + 1].Position.X;
+                float y2 = mesh.Vertices[i + 1].Position.Y;
+                float z2 = mesh.Vertices[i + 1].Position.Z;
+                float x3 = mesh.Vertices[i + 2].Position.X;
+                float y3 = mesh.Vertices[i + 2].Position.Y;
+                float z3 = mesh.Vertices[i + 2].Position.Z;
+                if (!vertex_counts.count({x1, y1, z1})) vertex_counts.insert({{x1, y1, z1}, 0});
+                if (!vertex_counts.count({x2, y2, z2})) vertex_counts.insert({{x2, y2, z2}, 0});
+                if (!vertex_counts.count({x3, y3, z3})) vertex_counts.insert({{x3, y3, z3}, 0});
+
+                Vector3f e1 = Vector3f(x2, y2, z2) - Vector3f(x1, y1, z1);
+                Vector3f e2 = Vector3f(x3, y3, z3) - Vector3f(x1, y1, z1);
+                vertex_counts.at({x1, y1, z1}) += crossProduct(e1, e2);
+                vertex_counts.at({x2, y2, z2}) += crossProduct(e1, e2);
+                vertex_counts.at({x3, y3, z3}) += crossProduct(e1, e2);
+            }
+        }
+
         for (int i = 0; i < mesh.Vertices.size(); i += 3) {
             std::array<Vector3f, 3> face_vertices;
             std::array<Vector3f, 3> vertex_normals;
@@ -144,6 +169,7 @@ public:
                 auto vert = Vector3f(mesh.Vertices[i + j].Position.X+offset.x,
                                      mesh.Vertices[i + j].Position.Y+offset.y,
                                      mesh.Vertices[i + j].Position.Z+offset.z);
+                
                 face_vertices[j] = vert;
                 vertex_normals[j] = { mesh.Vertices[i + j].Normal.X, mesh.Vertices[i + j].Normal.Y, mesh.Vertices[i + j].Normal.Z };
 
@@ -157,10 +183,12 @@ public:
 
             Triangle tri(face_vertices[0], face_vertices[1],
                                    face_vertices[2], mt);
-            if (abs(vertex_normals[0].x) <= 1.f && abs(vertex_normals[0].y) <= 1.f && abs(vertex_normals[0].z) <= 1.f) {
-                tri.n0 = vertex_normals[0];
-                tri.n1 = vertex_normals[1];
-                tri.n2 = vertex_normals[2];
+
+
+            if (mt->m_type == GLASS && TASK_N >= 6) {
+                tri.n0 = vertex_counts.at({tri.v0.x - offset.x, tri.v0.y - offset.y, tri.v0.z - offset.z}).normalized();
+                tri.n1 = vertex_counts.at({tri.v1.x - offset.x, tri.v1.y - offset.y, tri.v1.z - offset.z}).normalized();
+                tri.n2 = vertex_counts.at({tri.v2.x - offset.x, tri.v2.y - offset.y, tri.v2.z - offset.z}).normalized();
                 tri.hasVertexNormals = true;
             }
             triangles.emplace_back(tri);
@@ -269,7 +297,7 @@ inline Intersection Triangle::getIntersection(Ray ray)
     if (t > epsilon) {
         inter.coords = ray.origin + ray.direction * t;
         inter.happened = true;
-        inter.normal = hasVertexNormals ? (u * n0.normalized() + v * n1.normalized() + (1.f - u - v) * n2.normalized()).normalized() : this->normal;
+        inter.normal = this->hasVertexNormals ? (u * n0.normalized() + v * n1.normalized() + (1.f - u - v) * n2.normalized()).normalized() : this->normal;
         inter.material = this->m;
         inter.obj = this;
         inter.tcoords = {u, v};

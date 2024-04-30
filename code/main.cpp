@@ -6,7 +6,7 @@
 #include "global.hpp"
 #include <chrono>
 
-int TASK_N=5; // 1, 2, 3, 4, 5
+int TASK_N = 5; // 1, 2, 3, 4, 5
 
 // In the main function of the program, we create the scene (create objects and
 // lights) as well as set the options for the render (image width and height,
@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 {
     if (argc>=2)
         TASK_N=(int)atoi(argv[1]);
-    int width, height;
+    int width = 256, height = 256;
     if (argc>=3) {
         std::string dims = argv[2];
         width = (int)atoi(dims.substr(0, dims.find("x")).data());

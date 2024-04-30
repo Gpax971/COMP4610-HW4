@@ -55,9 +55,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
 
     Vector3f hitPoint = inter.coords;
     Vector3f N = inter.normal; // normal
-    Vector2f st = inter.tcoords; // texture coordinates
     Vector3f dir = ray.direction;
-    Vector3f color = inter.obj->evalDiffuseColor(inter.tcoords);
     
     if (mat->m_type == GLASS && TASK_N>=3) {
         if (depth < MAX_DEPTH) {
@@ -75,14 +73,12 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
 
     float p = mat->specularExponent;
     Vector3f v = -dir.normalized();
+    Vector3f color = inter.obj->evalDiffuseColor(inter.tcoords);
 
     for (const std::unique_ptr<PointLight>& light : lights) {
         Vector3f lightDiff = light->position - hitPoint;
-        Intersection i2 = intersect(Ray(hitPoint, lightDiff));
-        while (i2.obj == inter.obj) {
-            i2 = intersect(Ray(i2.coords + EPSILON * lightDiff.normalized(), lightDiff));
-        }
-        if (i2.happened) continue;
+        Intersection lightInter = intersect(Ray(light->position, -lightDiff));
+        if (lightInter.obj != inter.obj || (lightInter.coords - inter.coords).norm() > EPSILON) continue;
 
         Vector3f I = light->intensity;
         Vector3f l = lightDiff.normalized();
@@ -102,16 +98,13 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
             float pdf_light = 0.0f;
             sampleLight(lightInter, pdf_light);  // sample a point on the area light
             if (!lightInter.happened) break;
-            // TODO: task 5 soft shadow
+
             Vector3f lightPoint = lightInter.coords;
-            Vector3f lightDir = hitPoint - lightPoint;
-            Intersection sampleInter = intersect(Ray(lightPoint, lightDir));
-            if (sampleInter.obj != inter.obj) continue;
-            Vector3f ws = -lightDir;
+            Vector3f ws = lightPoint - hitPoint;
+            if (intersect(Ray(lightPoint, -ws)).obj != inter.obj) continue;
             float ws_norm = ws.norm();
             Vector3f lightColor = lightInter.material->m_emission * mat->eval(ws.normalized(), N.normalized()) 
-                        * dotProduct(ws.normalized(), N.normalized()) / (ws_norm * ws_norm) / pdf_light;
-            // std::cout << lightColor << std::endl;
+                                * dotProduct(ws.normalized(), N.normalized()) / (ws_norm * ws_norm) / pdf_light;
             hitColor += lightColor / light_sample;
         }
     }

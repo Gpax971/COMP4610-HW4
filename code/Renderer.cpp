@@ -65,7 +65,7 @@ void Renderer::Render(const Scene& scene)
 
     // save framebuffer to file
     std::stringstream ss;
-    ss << "binary_task" << TASK_N<<".ppm";
+    ss << "binary_task" << TASK_N << "_" << scene.width << "x" << scene.height << ".ppm";
     std::string str = ss.str();
     const char* file_name = str.c_str();
     FILE* fp = fopen(file_name, "wb");

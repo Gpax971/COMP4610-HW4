@@ -21,7 +21,7 @@ public:
     int height = 960;
     double fov = 40;
     Vector3f backgroundColor = Vector3f(0.235294, 0.67451, 0.843137);
-    int MAX_DEPTH = 10;
+    int MAX_DEPTH = 20;
 
     // sample per pixel
     int spp = 64;
