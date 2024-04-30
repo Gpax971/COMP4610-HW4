@@ -14,7 +14,7 @@
 
 inline float deg2rad(const float& deg) { return deg * M_PI / 180.0; }
 
-const float EPSILON = 1e-2;
+const float EPSILON = 0.01;
 
 // The main render function. This where we iterate over all pixels in the image,
 // generate primary rays and cast these rays into the scene. The content of the
@@ -38,16 +38,24 @@ void Renderer::Render(const Scene& scene)
             int m = i + j * scene.width;
             if (scene.spp==1) {
                 // TODO: task 1.2 pixel projection
-                float x = (float)(i << 1) / scene.width - 1;
-                float y = (float)(j << 1) / scene.height - 1;
+                float x = scale * (((float)(i << 1) + 1) / scene.width - 1);
+                float y = scale * (((float)(j << 1) + 1) / scene.height - 1);
                 Vector3f ray_dir {-x, -y, 1};
 
                 Vector3f dir = normalize(ray_dir);
                 framebuffer[m] = scene.castRay(Ray(eye_pos, dir), 0);
             } else {
-                // TODO: task 4 multi-sampling
+                framebuffer[m] = 0;
+                for (int k = 0; k < scene.spp; ++k) {
+                    
+                    float x = scale * (((float)(i << 1) + 2 * get_random_float()) / scene.width - 1);
+                    float y = scale * (((float)(j << 1) + 2 * get_random_float()) / scene.height - 1);
+                    Vector3f ray_dir {-x, -y, 1};
 
-
+                    Vector3f dir = normalize(ray_dir);
+                    framebuffer[m] += scene.castRay(Ray(eye_pos, dir), 0);
+                }
+                framebuffer[m] = framebuffer[m] / scene.spp;
             }
         }
         progress += 1.0f / (float)scene.height;

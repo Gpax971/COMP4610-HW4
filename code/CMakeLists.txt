@@ -3,6 +3,7 @@ project(RayTracing)
 
 ## Enable C++14
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_BUILD_TYPE Release)
 
 # OpenMP
 find_package(OpenMP)

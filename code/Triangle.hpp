@@ -9,14 +9,17 @@
 #include <cassert>
 #include <array>
 #include <cstring>
+#include <map>
 
 
 class Triangle : public Object
 {
 public:
-    Vector3f v0, v1, v2; // vertices A, B ,C , counter-clockwise order
-    Vector3f e1, e2;     // 2 edges v1-v0, v2-v0;
+    Vector3f v0, v1, v2; // vertices A, B, C counter-clockwise order
+    Vector3f e1, e2;     // 2 edges v1-v0, v2-v0
     Vector2f t0, t1, t2; // texture coords
+    Vector3f n0, n1, n2; // vertex normals
+    bool hasVertexNormals = false;
     Vector3f normal;
     float area;
     Material* m;
@@ -27,7 +30,10 @@ public:
         e1 = v1 - v0;
         e2 = v2 - v0;
         normal = normalize(crossProduct(e1, e2));
-        area = crossProduct(e1, e2).norm()*0.5f;
+        area = crossProduct(e1, e2).norm() * 0.5f;
+        n0 = 0;
+        n1 = 0;
+        n2 = 0;
     }
 
     Intersection getIntersection(Ray ray) override;
@@ -53,6 +59,8 @@ public:
     bool hasEmit(){
         return m->hasEmission();
     }
+private:
+    inline static std::map<std::tuple<float, float, float>, Vector3f> vertex_normals;
 };
 
 class MeshTriangle : public Object
@@ -120,7 +128,7 @@ public:
         area = 0;
         m = mt;
         assert(loader.LoadedMeshes.size() == 1);
-        auto mesh = loader.LoadedMeshes[0];
+        objl::Mesh mesh = loader.LoadedMeshes[0];
 
         Vector3f min_vert = Vector3f{std::numeric_limits<float>::infinity(),
                                      std::numeric_limits<float>::infinity(),
@@ -130,12 +138,14 @@ public:
                                      -std::numeric_limits<float>::infinity()};
         for (int i = 0; i < mesh.Vertices.size(); i += 3) {
             std::array<Vector3f, 3> face_vertices;
+            std::array<Vector3f, 3> vertex_normals;
 
             for (int j = 0; j < 3; j++) {
                 auto vert = Vector3f(mesh.Vertices[i + j].Position.X+offset.x,
                                      mesh.Vertices[i + j].Position.Y+offset.y,
                                      mesh.Vertices[i + j].Position.Z+offset.z);
                 face_vertices[j] = vert;
+                vertex_normals[j] = { mesh.Vertices[i + j].Normal.X, mesh.Vertices[i + j].Normal.Y, mesh.Vertices[i + j].Normal.Z };
 
                 min_vert = Vector3f(std::min(min_vert.x, vert.x),
                                     std::min(min_vert.y, vert.y),
@@ -145,8 +155,15 @@ public:
                                     std::max(max_vert.z, vert.z));
             }
 
-            triangles.emplace_back(face_vertices[0], face_vertices[1],
+            Triangle tri(face_vertices[0], face_vertices[1],
                                    face_vertices[2], mt);
+            if (abs(vertex_normals[0].x) <= 1.f && abs(vertex_normals[0].y) <= 1.f && abs(vertex_normals[0].z) <= 1.f) {
+                tri.n0 = vertex_normals[0];
+                tri.n1 = vertex_normals[1];
+                tri.n2 = vertex_normals[2];
+                tri.hasVertexNormals = true;
+            }
+            triangles.emplace_back(tri);
         }
 
         bounding_box = Bounds3(min_vert, max_vert);
@@ -242,43 +259,30 @@ inline Intersection Triangle::getIntersection(Ray ray)
     Vector3f s = ray.origin - this->v0;
     float u = inv_det * dotProduct(s, ray_cross_e2);
 
-    if (u < 0 || u > 1) return inter;
+    if (u < epsilon || u > (1 - epsilon)) return inter;
 
     Vector3f s_cross_e1 = crossProduct(s, this->e1);
     float v = inv_det * dotProduct(ray.direction, s_cross_e1);
-    if (v < 0 || u + v > 1) return inter;
+    if (v < epsilon || u + v > 1 - epsilon) return inter;
 
     float t = inv_det * dotProduct(this->e2, s_cross_e1);
     if (t > epsilon) {
         inter.coords = ray.origin + ray.direction * t;
         inter.happened = true;
-        inter.normal = this->normal;
+        inter.normal = hasVertexNormals ? (u * n0.normalized() + v * n1.normalized() + (1.f - u - v) * n2.normalized()).normalized() : this->normal;
         inter.material = this->m;
         inter.obj = this;
-        inter.tcoords = {0, 0};
+        inter.tcoords = {u, v};
+        inter.tnear = (ray.origin - inter.coords).norm();
     }
     return inter;
 }
 
-static Vector3f computeBarycentric2D(float x, float y, Vector3f p0, Vector3f p1, Vector3f p2) {
-    float c1 = (x * (p1[1] - p2[1]) + (p2[0] - p1[0]) * y + p1[0] * p2[1] - p2[0] * p1[1]) /
-               (p0[0] * (p1[1] - p2[1]) + (p2[0] - p1[0]) * p0[1] + p1[0] * p2[1] -
-                p2[0] * p1[1]);
-    float c2 = (x * (p2[1] - p0[1]) + (p0[0] - p2[0]) * y + p2[0] * p0[1] - p0[0] * p2[1]) /
-               (p1[0] * (p2[1] - p0[1]) + (p0[0] - p2[0]) * p1[1] + p2[0] * p0[1] -
-                p0[0] * p2[1]);
-    float c3 = (x * (p0[1] - p1[1]) + (p1[0] - p0[0]) * y + p0[0] * p1[1] - p1[0] * p0[1]) /
-               (p2[0] * (p0[1] - p1[1]) + (p1[0] - p0[0]) * p2[1] + p0[0] * p1[1] -
-                p1[0] * p0[1]);
-    return {c1, c2, c3};
-}
-
 inline Vector3f Triangle::evalDiffuseColor(const Vector2f& st) const
 {
-    if(!m->textured)return m->getColor();
+    if (!m->textured) return m->getColor();
     auto uv = t0 * (1 - st.x - st.y) + t1 * st.x + t2 * st.y;
     float scale = 5;
     float pattern = (fmodf(uv.x * scale, 1) > 0.5) ^ (fmodf(uv.y * scale, 1) > 0.5);
     return lerp(Vector3f(0.815, 0.235, 0.031), Vector3f(0.937, 0.937, 0.231), pattern);
-
 }

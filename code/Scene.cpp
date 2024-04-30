@@ -46,64 +46,75 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
     Intersection inter = intersect(ray);
     if (!inter.happened) return backgroundColor;
 
-    Vector3f hitPoint = inter.coords;
-    Vector3f N = inter.normal; // normal
-    Vector2f st = inter.tcoords; // texture coordinates
-    Vector3f dir = ray.direction;
+
     Material* mat = inter.material;
 
     if (mat->m_type == EMIT) {
         return mat->m_emission;
-    } else if (mat->m_type == DIFFUSE || TASK_N<3) {
-        Vector3f diffuseColor = 0, specularColor = 0;
+    }
 
-        // sample area light
+    Vector3f hitPoint = inter.coords;
+    Vector3f N = inter.normal; // normal
+    Vector2f st = inter.tcoords; // texture coordinates
+    Vector3f dir = ray.direction;
+    Vector3f color = inter.obj->evalDiffuseColor(inter.tcoords);
+    
+    if (mat->m_type == GLASS && TASK_N>=3) {
+        if (depth < MAX_DEPTH) {
+            float Kr = fresnel(dir.normalized(), N.normalized(), mat->ior);
+            Vector3f reflectionDir = reflect(dir.normalized(), N.normalized());
+            Vector3f refractionDir = refract(dir.normalized(), N.normalized(), mat->ior);
+            Vector3f reflectionColour = castRay(Ray(hitPoint + reflectionDir.normalized() * EPSILON, reflectionDir), depth + 1);
+            Vector3f refractionColour = castRay(Ray(hitPoint + refractionDir.normalized() * EPSILON, refractionDir), depth + 1);
+            if (refractionColour.x == -1) return reflectionColour;
+            if (reflectionColour.x == -1) return refractionColour;
+            return Kr * reflectionColour + (1.f - Kr) * refractionColour;
+        }
+        return -1;
+    }
+
+    float p = mat->specularExponent;
+    Vector3f v = -dir.normalized();
+
+    for (const std::unique_ptr<PointLight>& light : lights) {
+        Vector3f lightDiff = light->position - hitPoint;
+        Intersection i2 = intersect(Ray(hitPoint, lightDiff));
+        while (i2.obj == inter.obj) {
+            i2 = intersect(Ray(i2.coords + EPSILON * lightDiff.normalized(), lightDiff));
+        }
+        if (i2.happened) continue;
+
+        Vector3f I = light->intensity;
+        Vector3f l = lightDiff.normalized();
+        Vector3f h = (l + v).normalized();
+    
+        Vector3f specular = (mat->Ks * I) * pow(std::max(0.f, dotProduct(N, h)), p);
+        hitColor += specular;
+
+        Vector3f diffuse = (mat->Kd * I) * std::max(0.f, dotProduct(N, l));
+        hitColor += diffuse;
+    }
+
+    if (TASK_N >= 5) {
         int light_sample=4;
-        for (int i = 0; i < light_sample && TASK_N >= 5; ++i) {
+        for (int i = 0; i < light_sample; ++i) {
             Intersection lightInter;
             float pdf_light = 0.0f;
             sampleLight(lightInter, pdf_light);  // sample a point on the area light
+            if (!lightInter.happened) break;
             // TODO: task 5 soft shadow
+            Vector3f lightPoint = lightInter.coords;
+            Vector3f lightDir = hitPoint - lightPoint;
+            Intersection sampleInter = intersect(Ray(lightPoint, lightDir));
+            if (sampleInter.obj != inter.obj) continue;
+            Vector3f ws = -lightDir;
+            float ws_norm = ws.norm();
+            Vector3f lightColor = lightInter.material->m_emission * mat->eval(ws.normalized(), N.normalized()) 
+                        * dotProduct(ws.normalized(), N.normalized()) / (ws_norm * ws_norm) / pdf_light;
+            // std::cout << lightColor << std::endl;
+            hitColor += lightColor / light_sample;
         }
-        Vector3f Ka = Vector3f(0.005, 0.005, 0.005);
-
-        Vector3f amb_light_intensity{10, 10, 10};
-
-        float p = 150;
-
-        Vector3f color = inter.obj->evalDiffuseColor({0, 0});
-        Vector3f v = dir.normalized();
-        Vector3f result_color {0, 0, 0};
-
-        Vector3f La = Ka * amb_light_intensity;
-        for (const std::unique_ptr<PointLight>& light : lights) {
-            Vector3f lightDiff = light->position - hitPoint;
-
-            Vector3f I = light->intensity;
-            Vector3f l = lightDiff.normalized();
-            Vector3f h = (l + v).normalized();
-        
-            Vector3f specular = (mat->Ks * I) * pow(std::max(0.f, dotProduct(N, h)), p);
-            result_color += specular;
-
-            Vector3f diffuse = (mat->Kd * I) * std::max(0.f, dotProduct(N, l));
-            result_color += diffuse;
-        }
-        result_color += La;
-
-        return result_color;
-
-        
-        // TODO: task 1.3 Basic shading
-        return 1;
-
-
-    } else if (mat->m_type == GLASS && TASK_N>=3) {
-        // TODO: task 3 glass material
-
-
     }
 
-
-    return 1;
+    return hitColor * color;
 }
