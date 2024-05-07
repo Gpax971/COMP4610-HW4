@@ -22,9 +22,8 @@ int main(int argc, char** argv)
         width = (int)atoi(dims.substr(0, dims.find("x")).data());
         height = (int)atoi(dims.substr(dims.find("x") + 1).data());
     }
-    Scene scene(width, height); // use this resolution for final rendering
+    Scene scene(width, height, (TASK_N < 4) ? 1 : 64); // use this resolution for final rendering
 
-    if (TASK_N < 4) scene.spp = 1;
     Material* red = new Material(DIFFUSE, Vector3f(0.3f, 0.01f, 0.01f));
     Material* green = new Material(DIFFUSE, Vector3f(0.045, 0.22, 0.03));
     Material* white = new Material(DIFFUSE, Vector3f(0.48f, 0.45f, 0.4f));
@@ -62,6 +61,7 @@ int main(int argc, char** argv)
     scene.Add(new MeshTriangle(verts, vertIndex, 2, st, mfloor));
 
     scene.Add(std::make_unique<PointLight>(Vector3f(-2000, 4000, -3000), 0.5));
+    // scene.Add(std::make_unique<PointLight>(Vector3f(2000, 200, -3000), 0.5));
 
     scene.buildBVH();
 

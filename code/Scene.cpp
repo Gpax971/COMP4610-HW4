@@ -73,12 +73,11 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
 
     float p = mat->specularExponent;
     Vector3f v = -dir.normalized();
-    Vector3f color = inter.obj->evalDiffuseColor(inter.tcoords);
 
     for (const std::unique_ptr<PointLight>& light : lights) {
         Vector3f lightDiff = light->position - hitPoint;
         Intersection lightInter = intersect(Ray(light->position, -lightDiff));
-        if (lightInter.obj != inter.obj || (lightInter.coords - inter.coords).norm() > EPSILON) continue;
+        if (lightInter.obj != inter.obj || (lightInter.coords - hitPoint).norm() > 0.5) continue;
 
         Vector3f I = light->intensity;
         Vector3f l = lightDiff.normalized();
@@ -92,22 +91,25 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
     }
 
     if (TASK_N >= 5) {
-        int light_sample=4;
+        int light_sample = 4;
         for (int i = 0; i < light_sample; ++i) {
             Intersection lightInter;
             float pdf_light = 0.0f;
-            sampleLight(lightInter, pdf_light);  // sample a point on the area light
+            sampleLight(lightInter, pdf_light);
             if (!lightInter.happened) break;
 
             Vector3f lightPoint = lightInter.coords;
             Vector3f ws = lightPoint - hitPoint;
-            if (intersect(Ray(lightPoint, -ws)).obj != inter.obj) continue;
+            Vector3f ws_n = ws.normalized();
+            Intersection shadowInter = intersect(Ray(lightPoint, -ws));
+            if (shadowInter.obj != inter.obj || (shadowInter.coords - inter.coords).norm() > 0.5) continue;
+
             float ws_norm = ws.norm();
-            Vector3f lightColor = lightInter.material->m_emission * mat->eval(ws.normalized(), N.normalized()) 
-                                * dotProduct(ws.normalized(), N.normalized()) / (ws_norm * ws_norm) / pdf_light;
+            Vector3f lightColor = lightInter.material->m_emission * mat->eval(ws_n, N) 
+                                * dotProduct(ws_n, N) / (ws_norm * ws_norm) / pdf_light;
             hitColor += lightColor / light_sample;
         }
     }
 
-    return hitColor * color;
+    return hitColor * inter.obj->evalDiffuseColor(inter.tcoords);
 }

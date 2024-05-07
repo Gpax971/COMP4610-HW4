@@ -17,16 +17,16 @@ class Scene
 {
 public:
     // setting up options
-    int width = 1280;
-    int height = 960;
+    const int width = 1280;
+    const int height = 960;
     double fov = 40;
     Vector3f backgroundColor = Vector3f(0.235294, 0.67451, 0.843137);
-    int MAX_DEPTH = 20;
+    const int MAX_DEPTH = 20;
 
     // sample per pixel
-    int spp = 64;
+    const int spp = 64;
 
-    Scene(int w, int h) : width(w), height(h)
+    Scene(int w, int h, int s) : width(w), height(h), spp(s)
     {}
 
     void Add(Object *object) { objects.push_back(object); }

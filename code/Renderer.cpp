@@ -31,36 +31,35 @@ void Renderer::Render(const Scene& scene)
 
     float progress = 0.0f;
 
-#pragma omp parallel for num_threads(8) // use multi-threading for speedup if openmp is available
+
+#pragma omp parallel num_threads(8)
+{
+#pragma omp for nowait schedule(static, 1) collapse(2) // use multi-threading for speedup if openmp is available
     for (uint32_t j = 0; j < scene.height; ++j) {
         for (uint32_t i = 0; i < scene.width; ++i) {
-
-            int m = i + j * scene.width;
-            if (scene.spp==1) {
-                // TODO: task 1.2 pixel projection
-                float x = scale * (((float)(i << 1) + 1) / scene.width - 1);
-                float y = scale * (((float)(j << 1) + 1) / scene.height - 1);
+            Vector3f out = 0;
+            
+            float x_offset = (scene.spp == 1) ? 0.5 : get_random_float();
+            float y_offset = (scene.spp == 1) ? 0.5 : get_random_float();
+            for (int k = 0; k < scene.spp; ++k) {
+                
+                float x = scale * (((float)(i << 1) + 2 * x_offset) / scene.width - 1);
+                float y = scale * (((float)(j << 1) + 2 * y_offset) / scene.height - 1);
                 Vector3f ray_dir {-x, -y, 1};
 
                 Vector3f dir = normalize(ray_dir);
-                framebuffer[m] = scene.castRay(Ray(eye_pos, dir), 0);
-            } else {
-                framebuffer[m] = 0;
-                for (int k = 0; k < scene.spp; ++k) {
-                    
-                    float x = scale * (((float)(i << 1) + 2 * get_random_float()) / scene.width - 1);
-                    float y = scale * (((float)(j << 1) + 2 * get_random_float()) / scene.height - 1);
-                    Vector3f ray_dir {-x, -y, 1};
-
-                    Vector3f dir = normalize(ray_dir);
-                    framebuffer[m] += scene.castRay(Ray(eye_pos, dir), 0);
-                }
-                framebuffer[m] = framebuffer[m] / scene.spp;
+                out += scene.castRay(Ray(eye_pos, dir), 0);
+                x_offset = get_random_float();
+                y_offset = get_random_float();
             }
+            
+            framebuffer[i + j * scene.width] = out / scene.spp;
+            if (i) continue;
+            progress += 1.0f / (float)scene.height;
+            UpdateProgress(progress);
         }
-        progress += 1.0f / (float)scene.height;
-        UpdateProgress(progress);
     }
+}
     UpdateProgress(1.f);
 
     // save framebuffer to file
