@@ -4,11 +4,11 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/anucg/HW4/code/BVH.cpp" "/home/anucg/HW4/code/build/CMakeFiles/RayTracing.dir/BVH.cpp.o"
-  "/home/anucg/HW4/code/Renderer.cpp" "/home/anucg/HW4/code/build/CMakeFiles/RayTracing.dir/Renderer.cpp.o"
-  "/home/anucg/HW4/code/Scene.cpp" "/home/anucg/HW4/code/build/CMakeFiles/RayTracing.dir/Scene.cpp.o"
-  "/home/anucg/HW4/code/Vector.cpp" "/home/anucg/HW4/code/build/CMakeFiles/RayTracing.dir/Vector.cpp.o"
-  "/home/anucg/HW4/code/main.cpp" "/home/anucg/HW4/code/build/CMakeFiles/RayTracing.dir/main.cpp.o"
+  "/home/anucg/HW4/COMP4610-HW4/code/BVH.cpp" "/home/anucg/HW4/COMP4610-HW4/code/build/CMakeFiles/RayTracing.dir/BVH.cpp.o"
+  "/home/anucg/HW4/COMP4610-HW4/code/Renderer.cpp" "/home/anucg/HW4/COMP4610-HW4/code/build/CMakeFiles/RayTracing.dir/Renderer.cpp.o"
+  "/home/anucg/HW4/COMP4610-HW4/code/Scene.cpp" "/home/anucg/HW4/COMP4610-HW4/code/build/CMakeFiles/RayTracing.dir/Scene.cpp.o"
+  "/home/anucg/HW4/COMP4610-HW4/code/Vector.cpp" "/home/anucg/HW4/COMP4610-HW4/code/build/CMakeFiles/RayTracing.dir/Vector.cpp.o"
+  "/home/anucg/HW4/COMP4610-HW4/code/main.cpp" "/home/anucg/HW4/COMP4610-HW4/code/build/CMakeFiles/RayTracing.dir/main.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

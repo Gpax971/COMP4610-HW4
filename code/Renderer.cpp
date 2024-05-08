@@ -22,8 +22,8 @@ const float EPSILON = 0.01;
 
 void Renderer::Render(const Scene& scene)
 {
-    Vector3f framebuffer[scene.width * scene.height];
-    // std::vector<Vector3f> framebuffer(scene.width * scene.height);
+    // Vector3f framebuffer[scene.width * scene.height];
+    std::vector<Vector3f> framebuffer(scene.width * scene.height);
 
     float scale = tan(deg2rad(scene.fov * 0.5));
     float imageAspectRatio = scene.width / (float)scene.height;
@@ -46,7 +46,7 @@ void Renderer::Render(const Scene& scene)
             for (int k = 0; k < scene.spp; ++k) {
                 
                 float x = scale * (1 - ((float)(i << 1) + 2 * x_offset) / scene.width);
-                float y = scale * (1 - ((float)(j << 1) + 2 * y_offset) / scene.height);
+                float y = scale * (1 - ((float)(j << 1) + 2 * y_offset) / scene.height) / imageAspectRatio;
                 Vector3f ray_dir {x, y, 1};
 
                 Vector3f dir = normalize(ray_dir);

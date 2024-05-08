@@ -65,11 +65,9 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
             Vector3f refractionDir = refract(dir.normalized(), N.normalized(), mat->ior);
             Vector3f reflectionColour = castRay(Ray(hitPoint + reflectionDir.normalized() * EPSILON, reflectionDir), depth + 1);
             Vector3f refractionColour = castRay(Ray(hitPoint + refractionDir.normalized() * EPSILON, refractionDir), depth + 1);
-            if (refractionColour.x == -1) return (depth || reflectionColour.x >= 0) ? reflectionColour : 0;
-            if (reflectionColour.x == -1) return (depth || refractionColour.x >= 0) ? refractionColour : 0;
             return Kr * reflectionColour + (1.f - Kr) * refractionColour;
         }
-        return -1;
+        return 0;
     }
 
     float p = mat->specularExponent;
