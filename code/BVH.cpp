@@ -122,7 +122,7 @@ Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
     }
     // TODO: task 2 BVH algorithm starts here
     Intersection inter;
-    Vector3f indiv(1.0f/(ray.direction[0]==0?0.00001:ray.direction[0]),
+    Vector3f invDir(1.0f/(ray.direction[0]==0?0.00001:ray.direction[0]),
                    1.0f/(ray.direction[1]==0?0.00001:ray.direction[1]),
                    1.0f/(ray.direction[2]==0?0.00001:ray.direction[2]));
        
@@ -131,7 +131,7 @@ Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
     dirIsNeg[1]=int(ray.direction.y>0);
     dirIsNeg[2]=int(ray.direction.z>0);
 
-    if (!node->bounds.IntersectP(ray, indiv, dirIsNeg))    return inter;
+    if (!node->bounds.IntersectP(ray, invDir, dirIsNeg)) return inter;
 
     if (node->left==nullptr && node->right==nullptr)
     {
