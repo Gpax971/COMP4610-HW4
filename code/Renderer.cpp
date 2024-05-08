@@ -67,7 +67,7 @@ void Renderer::Render(const Scene& scene)
     // save framebuffer to file
     std::stringstream ss;
     ss << "../final_output_image/binary_task" << TASK_N ;
-    if (scene.width != 256 || scene.height != 256) ss << "_" << scene.width << "x" << scene.height << "_2";
+    if (scene.width != 256 || scene.height != 256) ss << "_" << scene.width << "x" << scene.height;
     ss << ".ppm";
     std::string str = ss.str();
     const char* file_name = str.c_str();
