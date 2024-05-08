@@ -53,19 +53,20 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
         return mat->m_emission;
     }
 
+    Vector3f pointColor = inter.obj->evalDiffuseColor(inter.tcoords);
     Vector3f hitPoint = inter.coords;
     Vector3f N = inter.normal; // normal
     Vector3f dir = ray.direction;
     
-    if (mat->m_type == GLASS && TASK_N>=3) {
+    if (mat->m_type == GLASS && TASK_N >= 3) {
         if (depth < MAX_DEPTH) {
             float Kr = fresnel(dir.normalized(), N.normalized(), mat->ior);
             Vector3f reflectionDir = reflect(dir.normalized(), N.normalized());
             Vector3f refractionDir = refract(dir.normalized(), N.normalized(), mat->ior);
             Vector3f reflectionColour = castRay(Ray(hitPoint + reflectionDir.normalized() * EPSILON, reflectionDir), depth + 1);
             Vector3f refractionColour = castRay(Ray(hitPoint + refractionDir.normalized() * EPSILON, refractionDir), depth + 1);
-            if (refractionColour.x == -1) return reflectionColour;
-            if (reflectionColour.x == -1) return refractionColour;
+            if (refractionColour.x == -1) return (depth || reflectionColour.x >= 0) ? reflectionColour : 0;
+            if (reflectionColour.x == -1) return (depth || refractionColour.x >= 0) ? refractionColour : 0;
             return Kr * reflectionColour + (1.f - Kr) * refractionColour;
         }
         return -1;
@@ -76,14 +77,14 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
 
     for (const std::unique_ptr<PointLight>& light : lights) {
         Vector3f lightDiff = light->position - hitPoint;
-        Intersection lightInter = intersect(Ray(light->position, -lightDiff));
-        if (lightInter.obj != inter.obj || (lightInter.coords - hitPoint).norm() > 0.5) continue;
+        Vector3f l = lightDiff.normalized();
+        Intersection lightInter = intersect(Ray(hitPoint, lightDiff));
+        if (lightInter.happened || lightInter.tnear < lightDiff.norm() + EPSILON) continue;
 
         Vector3f I = light->intensity;
-        Vector3f l = lightDiff.normalized();
-        Vector3f h = (l + v).normalized();
+        Vector3f R = reflect(-l, N);
     
-        Vector3f specular = (mat->Ks * I) * pow(std::max(0.f, dotProduct(N, h)), p);
+        Vector3f specular = (mat->Ks * I) * pow(std::max(0.f, dotProduct(v, R)), p);
         hitColor += specular;
 
         Vector3f diffuse = (mat->Kd * I) * std::max(0.f, dotProduct(N, l));
@@ -91,7 +92,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
     }
 
     if (TASK_N >= 5) {
-        int light_sample = 4;
+        int light_sample = 8;
         for (int i = 0; i < light_sample; ++i) {
             Intersection lightInter;
             float pdf_light = 0.0f;
@@ -102,7 +103,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
             Vector3f ws = lightPoint - hitPoint;
             Vector3f ws_n = ws.normalized();
             Intersection shadowInter = intersect(Ray(lightPoint, -ws));
-            if (shadowInter.obj != inter.obj || (shadowInter.coords - inter.coords).norm() > 0.5) continue;
+            if (shadowInter.obj != inter.obj || (shadowInter.coords - inter.coords).norm() > EPSILON) continue;
 
             float ws_norm = ws.norm();
             Vector3f lightColor = lightInter.material->m_emission * mat->eval(ws_n, N) 
@@ -111,5 +112,5 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
         }
     }
 
-    return hitColor * inter.obj->evalDiffuseColor(inter.tcoords);
+    return hitColor * pointColor;
 }

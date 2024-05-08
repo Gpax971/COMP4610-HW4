@@ -19,9 +19,11 @@ const float EPSILON = 0.01;
 // The main render function. This where we iterate over all pixels in the image,
 // generate primary rays and cast these rays into the scene. The content of the
 // framebuffer is saved to a file.
+
 void Renderer::Render(const Scene& scene)
 {
-    std::vector<Vector3f> framebuffer(scene.width * scene.height);
+    Vector3f framebuffer[scene.width * scene.height];
+    // std::vector<Vector3f> framebuffer(scene.width * scene.height);
 
     float scale = tan(deg2rad(scene.fov * 0.5));
     float imageAspectRatio = scene.width / (float)scene.height;
@@ -29,12 +31,12 @@ void Renderer::Render(const Scene& scene)
 
     std::cout << "SPP: " << scene.spp << "\n";
 
-    float progress = 0.0f;
+    float progress = 0.f;
 
 
 #pragma omp parallel num_threads(8)
 {
-#pragma omp for nowait schedule(static, 1) collapse(2) // use multi-threading for speedup if openmp is available
+#pragma omp for nowait schedule(dynamic, 128) collapse(2) // use multi-threading for speedup if openmp is available
     for (uint32_t j = 0; j < scene.height; ++j) {
         for (uint32_t i = 0; i < scene.width; ++i) {
             Vector3f out = 0;
@@ -43,9 +45,9 @@ void Renderer::Render(const Scene& scene)
             float y_offset = (scene.spp == 1) ? 0.5 : get_random_float();
             for (int k = 0; k < scene.spp; ++k) {
                 
-                float x = scale * (((float)(i << 1) + 2 * x_offset) / scene.width - 1);
-                float y = scale * (((float)(j << 1) + 2 * y_offset) / scene.height - 1);
-                Vector3f ray_dir {-x, -y, 1};
+                float x = scale * (1 - ((float)(i << 1) + 2 * x_offset) / scene.width);
+                float y = scale * (1 - ((float)(j << 1) + 2 * y_offset) / scene.height);
+                Vector3f ray_dir {x, y, 1};
 
                 Vector3f dir = normalize(ray_dir);
                 out += scene.castRay(Ray(eye_pos, dir), 0);
@@ -54,9 +56,9 @@ void Renderer::Render(const Scene& scene)
             }
             
             framebuffer[i + j * scene.width] = out / scene.spp;
-            if (i) continue;
-            progress += 1.0f / (float)scene.height;
+            if (i < scene.width - 1) continue;
             UpdateProgress(progress);
+            progress += 1.0f / (float)scene.height;
         }
     }
 }
@@ -64,7 +66,9 @@ void Renderer::Render(const Scene& scene)
 
     // save framebuffer to file
     std::stringstream ss;
-    ss << "binary_task" << TASK_N << "_" << scene.width << "x" << scene.height << ".ppm";
+    ss << "../final_output_image/binary_task" << TASK_N ;
+    if (scene.width != 256 || scene.height != 256) ss << "_" << scene.width << "x" << scene.height << "_2";
+    ss << ".ppm";
     std::string str = ss.str();
     const char* file_name = str.c_str();
     FILE* fp = fopen(file_name, "wb");

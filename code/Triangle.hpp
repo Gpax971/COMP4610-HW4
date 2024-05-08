@@ -292,13 +292,13 @@ inline Intersection Triangle::getIntersection(Ray ray)
     Vector3f s_cross_e1 = crossProduct(s, this->e1);
     float v = inv_det * dotProduct(ray.direction, s_cross_e1);
     
-    if (v < epsilon || u + v > 1 - epsilon) return inter;
+    if (v < epsilon || u + v > (1 - epsilon)) return inter;
 
     float t = inv_det * dotProduct(this->e2, s_cross_e1);
     if (t > epsilon) {
         inter.coords = ray.origin + ray.direction * t;
         inter.happened = true;
-        inter.normal = this->hasVertexNormals ? (u * n0 + v * n1 + (1.f - u - v) * n2).normalized() : this->normal;
+        inter.normal = this->hasVertexNormals ? (u * n1 + v * n2 + (1.f - u - v) * n0).normalized() : this->normal;
         inter.material = this->m;
         inter.obj = this;
         inter.tcoords = {u, v};

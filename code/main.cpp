@@ -7,6 +7,7 @@
 #include <chrono>
 
 int TASK_N = 5; // 1, 2, 3, 4, 5
+const int spp = 64;
 
 // In the main function of the program, we create the scene (create objects and
 // lights) as well as set the options for the render (image width and height,
@@ -22,7 +23,7 @@ int main(int argc, char** argv)
         width = (int)atoi(dims.substr(0, dims.find("x")).data());
         height = (int)atoi(dims.substr(dims.find("x") + 1).data());
     }
-    Scene scene(width, height, (TASK_N < 4) ? 1 : 64); // use this resolution for final rendering
+    Scene scene(width, height, (TASK_N < 4) ? 1 : spp); // use this resolution for final rendering
 
     Material* red = new Material(DIFFUSE, Vector3f(0.3f, 0.01f, 0.01f));
     Material* green = new Material(DIFFUSE, Vector3f(0.045, 0.22, 0.03));
@@ -61,7 +62,6 @@ int main(int argc, char** argv)
     scene.Add(new MeshTriangle(verts, vertIndex, 2, st, mfloor));
 
     scene.Add(std::make_unique<PointLight>(Vector3f(-2000, 4000, -3000), 0.5));
-    // scene.Add(std::make_unique<PointLight>(Vector3f(2000, 200, -3000), 0.5));
 
     scene.buildBVH();
 
@@ -75,6 +75,7 @@ int main(int argc, char** argv)
     std::cout << "Time taken: " << std::chrono::duration_cast<std::chrono::hours>(stop - start).count() << " hours\n";
     std::cout << "          : " << std::chrono::duration_cast<std::chrono::minutes>(stop - start).count() % 60 << " minutes\n";
     std::cout << "          : " << std::chrono::duration_cast<std::chrono::seconds>(stop - start).count() % 60 << " seconds\n";
+    std::cout << "          : " << std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() % 1000 << " milliseconds\n";
 
     return 0;
 }

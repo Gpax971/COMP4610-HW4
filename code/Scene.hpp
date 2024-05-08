@@ -92,10 +92,10 @@ public:
     float fresnel(const Vector3f &I, const Vector3f &N, const float &ior) const
     {
         float cosi = clamp(-1, 1, dotProduct(I, N));
-        float etai = 1, etat = ior;
-        if (cosi > 0) {  std::swap(etai, etat); }
+        float Z1 = 1, Z2 = ior;
+        if (cosi > 0) { std::swap(Z1, Z2); }
         // Compute sini using Snell's law
-        float sint = etai / etat * sqrtf(std::max(0.f, 1 - cosi * cosi));
+        float sint = Z1 / Z2 * sqrtf(std::max(0.f, 1 - cosi * cosi));
         // Total internal reflection
         if (sint >= 1) {
             return 1;
@@ -103,8 +103,8 @@ public:
         else {
             float cost = sqrtf(std::max(0.f, 1 - sint * sint));
             cosi = fabsf(cosi);
-            float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
-            float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
+            float Rs = ((Z2 * cosi) - (Z1 * cost)) / ((Z2 * cosi) + (Z1 * cost));
+            float Rp = ((Z1 * cosi) - (Z2 * cost)) / ((Z1 * cosi) + (Z2 * cost));
             return (Rs * Rs + Rp * Rp) / 2;
         }
         // As a consequence of the conservation of energy, transmittance is given by:
